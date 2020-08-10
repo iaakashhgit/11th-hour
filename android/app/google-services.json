@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "490445395390",
+    "firebase_url": "https://catchlens.firebaseio.com",
+    "project_id": "catchlens",
+    "storage_bucket": "catchlens.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:490445395390:android:0bb29b28be30281016d5ef",
+        "android_client_info": {
+          "package_name": "com.example.catchlens"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "490445395390-gv9khi318ed55mnl3rgjksp0jmul2tai.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9Drm0sMlzFa-SgmA7twSMDLMjAeOoLKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "490445395390-gv9khi318ed55mnl3rgjksp0jmul2tai.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
