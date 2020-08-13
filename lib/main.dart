@@ -7,9 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:catchlens/image_detail.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+
 import 'package:syncfusion_flutter_pdf/pdf.dart';
-
-
 
 List<CameraDescription> cameras = [];
 
@@ -38,29 +37,6 @@ class MyApp extends StatelessWidget {
        
     );
   }
-}
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: Text(widget.title),
-    ),
-    body: Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          FlatButton(
-            child: Text(
-              'Generate PDF',
-              style: TextStyle(color: Colors.white),
-            ),
-            color: Colors.blue,
-            onPressed: _createPDF,
-          )
-        ],
-      ),
-    ),
-  );
 }
 
 
