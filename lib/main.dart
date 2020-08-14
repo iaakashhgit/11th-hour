@@ -1,14 +1,10 @@
 import 'dart:io';
 
-
-
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:catchlens/image_detail.dart';
+import 'package:catchlens/image_detail.dart' show DetailScreen;
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 List<CameraDescription> cameras = [];
 
@@ -32,13 +28,9 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: CameraScreen(),
-      
-      
-       
     );
   }
 }
-
 
 class CameraScreen extends StatefulWidget {
   @override
@@ -106,7 +98,6 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: _controller.value.isInitialized
           ? Stack(
               children: <Widget>[
@@ -117,14 +108,14 @@ class _CameraScreenState extends State<CameraScreen> {
                     alignment: Alignment.bottomCenter,
                     child: RaisedButton.icon(
                       icon: Icon(Icons.camera),
-                      label: Text("Click"),
+                      label: Text("Capture"),
                       onPressed: () async {
                         await _takePicture().then((String path) {
                           if (path != null) {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => DetailScreen(path),
+                                builder: (context) => FirebaseMlkit(/Users/its...ShiVam_Raj/Desktop/Data/catch_lens/catchlens/lib/image_detail.dart),
                               ),
                             );
                           }

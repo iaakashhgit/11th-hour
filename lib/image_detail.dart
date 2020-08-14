@@ -1,195 +1,296 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
-import 'dart:io';
+
+import 'package:flutter/services.dart';
+import 'package:meta/meta.dart';
+import 'dart:math';
+
 import 'dart:ui';
 import 'dart:async';
 
 
-class DetailScreen extends StatefulWidget {
+
+
+  
+  
+
+class VisionText extends StatefulWidget {
   final String imagePath;
-  DetailScreen(this.imagePath);
-
+  VisionText(this.imagePath);
   @override
-  _DetailScreenState createState() => new _DetailScreenState(imagePath);
+  _VisionTextState createState() => new _VisionTextState(imagePath);
 }
 
-class _DetailScreenState extends State<DetailScreen> {
-  _DetailScreenState(this.path);
+class _VisionTextState extends State<VisionText> {
+  _VisionTextState(this.data);
+  
+  final String data;
+  
+  final Map<dynamic, dynamic> _data;
 
-  final String path;
+  String get text => _data['text'];
+  final Rect rect;
+  final List<Point<num>> cornerPoints;
 
-  Size _imageSize;
-  List<TextElement> _elements = [];
-  String recognizedText = "Loading ...";
+  VisionText._(this._data)
+      : rect = Rect.fromLTRB(_data['rect_left'], _data['rect_top'],
+            _data['rect_right'], _data['rect_bottom']),
+        cornerPoints = _data['points'] == null
+            ? null
+            : _data['points']
+                .map<Point<num>>(
+                    (dynamic item) => Point<num>(item['x'], item['y']))
+                .toList();
+  
+  
+  
+}
+class VisionTextBlock extends VisionText {
+  final List<VisionTextLine> lines;
 
-  void _initializeVision() async {
-    final File imageFile = File(path);
+  VisionTextBlock._(Map<dynamic, dynamic> data)
+      : lines = data['lines'] == null
+            ? null
+            : data['lines']
+                .map<VisionTextLine>((dynamic item) => VisionTextLine._(item))
+                .toList(),
+        super._(data);
+}
 
-    if (imageFile != null) {
-      await _getImageSize(imageFile);
-    }
+class VisionTextLine extends VisionText {
+  final List<VisionTextElement> elements;
 
-    final FirebaseVisionImage visionImage =
-        FirebaseVisionImage.fromFile(imageFile);
+  VisionTextLine._(Map<dynamic, dynamic> data)
+      : elements = data['elements'] == null
+            ? null
+            : data['elements']
+                .map<VisionTextElement>(
+                    (dynamic item) => VisionTextElement._(item))
+                .toList(),
+        super._(data);
+}
 
-    final TextRecognizer textRecognizer =
-        FirebaseVision.instance.textRecognizer();
+class VisionTextElement extends VisionText {
+  VisionTextElement._(Map<dynamic, dynamic> data) : super._(data);
+}
 
-    final VisionText visionText =
-        await textRecognizer.processImage(visionImage);
+class FirebaseMlkit {
+  // ignore: unused_field
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
 
-    String pattern =
-        "";
-    RegExp regEx = RegExp(pattern);
+  static FirebaseMlkit instance = new FirebaseMlkit._();
 
-    String mailAddress = "";
-    for (TextBlock block in visionText.blocks) {
-      for (TextLine line in block.lines) {
-        if (regEx.hasMatch(line.text)) {
-          mailAddress += line.text + '\n';
-          for (TextElement element in line.elements) {
-            _elements.add(element);
-          }
-        }
-      }
-    }
+  FirebaseMlkit._();
 
-    if (this.mounted) {
-      setState(() {
-        recognizedText = mailAddress;
-      });
-    }
+  FirebaseVisionTextDetector getVisionTextDetector() {
+    return FirebaseVisionTextDetector.instance;
   }
+}
 
-  Future<void> _getImageSize(File imageFile) async {
-    final Completer<Size> completer = Completer<Size>();
+class FirebaseVisionTextDetector {
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
 
-    final Image image = Image.file(imageFile);
-    image.image.resolve(const ImageConfiguration()).addListener(
-      ImageStreamListener((ImageInfo info, bool _) {
-        completer.complete(Size(
-          info.image.width.toDouble(),
-          info.image.height.toDouble(),
-        ));
-      }),
-    );
+  static FirebaseVisionTextDetector instance =
+      new FirebaseVisionTextDetector._();
 
-    final Size imageSize = await completer.future;
-    setState(() {
-      _imageSize = imageSize;
+  FirebaseVisionTextDetector._() {}
+
+  Future<List<VisionText>> detectFromBinary(Uint8List binary) async {
+    List<dynamic> texts = await _channel.invokeMethod(
+        "FirebaseVisionTextDetector#detectFromBinary", {'binary': binary});
+    List<VisionText> ret = [];
+    texts?.forEach((dynamic item) {
+      final VisionTextBlock text = new VisionTextBlock._(item);
+      ret.add(text);
     });
+    return ret;
   }
 
-  @override
-  void initState() {
-    _initializeVision();
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Image Details"),
-      ),
-      body: _imageSize != null
-          ? Stack(
-              children: <Widget>[
-                Center(
-                  child: Container(
-                    width: double.maxFinite,
-                    color: Colors.black,
-                    child: CustomPaint(
-                      foregroundPainter:
-                          TextDetectorPainter(_imageSize, _elements),
-                      child: AspectRatio(
-                        aspectRatio: _imageSize.aspectRatio,
-                        child: Image.file(
-                          File(path),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Card(
-                    elevation: 8,
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Row(),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Text(
-                              "Identified text",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            height: 60,
-                            child: SingleChildScrollView(
-                              child: Text(
-                                recognizedText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : Container(
-              color: Colors.black,
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
-    );
+  Future<List<VisionText>> detectFromPath(String filepath) async {
+    List<dynamic> texts = await _channel.invokeMethod(
+        "FirebaseVisionTextDetector#detectFromPath", {'filepath': filepath});
+    List<VisionText> ret = [];
+    texts?.forEach((dynamic item) {
+      final VisionTextBlock text = new VisionTextBlock._(item);
+      ret.add(text);
+    });
+    return ret;
   }
 }
 
-class TextDetectorPainter extends CustomPainter {
-  TextDetectorPainter(this.absoluteImageSize, this.elements);
+class FirebaseModelInterpreter {
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
 
-  final Size absoluteImageSize;
-  final List<TextElement> elements;
+  static FirebaseModelInterpreter instance = new FirebaseModelInterpreter._();
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double scaleX = size.width / absoluteImageSize.width;
-    final double scaleY = size.height / absoluteImageSize.height;
+  FirebaseModelInterpreter._() {}
 
-    Rect scaleRect(TextContainer container) {
-      return Rect.fromLTRB(
-        container.boundingBox.left * scaleX,
-        container.boundingBox.top * scaleY,
-        container.boundingBox.right * scaleX,
-        container.boundingBox.bottom * scaleY,
-      );
+  Future<List<dynamic>> run(
+      {String remoteModelName,
+      String localModelName,
+      FirebaseModelInputOutputOptions inputOutputOptions,
+      Uint8List inputBytes}) async {
+    assert(remoteModelName != null || localModelName != null);
+    try {
+      dynamic results =
+          await _channel.invokeMethod("FirebaseModelInterpreter#run", {
+        'remoteModelName': remoteModelName,
+        'localModelName': localModelName,
+        'inputOutputOptions': inputOutputOptions.asDictionary(),
+        'inputBytes': inputBytes
+      });
+      return results;
+    } catch (e) {
+      print("Error on FirebaseModelInterpreter#run : ${e.toString()}");
     }
-
-    final Paint paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..color = Colors.red
-      ..strokeWidth = 2.0;
-
-    for (TextElement element in elements) {
-      canvas.drawRect(scaleRect(element), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(TextDetectorPainter oldDelegate) {
-    return true;
+    return null;
   }
 }
+
+class FirebaseModelIOOption {
+  final FirebaseModelDataType dataType;
+  final List<int> dims;
+
+  const FirebaseModelIOOption(this.dataType, this.dims);
+  Map<String, dynamic> asDictionary() {
+    return {
+      "dataType": dataType.value,
+      "dims": dims,
+    };
+  }
+}
+
+class FirebaseModelInputOutputOptions {
+  final List<FirebaseModelIOOption> inputOptions;
+  final List<FirebaseModelIOOption> outputOptions;
+
+  const FirebaseModelInputOutputOptions(this.inputOptions, this.outputOptions);
+
+  Map<String, dynamic> asDictionary() {
+    List<Map<String, dynamic>> inputs = [];
+    List<Map<String, dynamic>> outputs = [];
+    inputOptions.forEach((o) {
+      inputs.add(o.asDictionary());
+    });
+    outputOptions.forEach((o) {
+      outputs.add(o.asDictionary());
+    });
+    return {
+      "inputOptions": inputs,
+      "outputOptions": outputs,
+    };
+  }
+}
+
+class FirebaseModelDataType {
+  final int value;
+  const FirebaseModelDataType._(int value) : value = value;
+
+  static const FLOAT32 = const FirebaseModelDataType._(1);
+  static const INT32 = const FirebaseModelDataType._(2);
+  static const BYTE = const FirebaseModelDataType._(3);
+  static const LONG = const FirebaseModelDataType._(4);
+}
+
+class FirebaseModelManager {
+  static const MethodChannel _channel =
+      const MethodChannel('plugins.flutter.io/mlkit');
+
+  static FirebaseModelManager instance = FirebaseModelManager._();
+
+  FirebaseModelManager._() {}
+
+  Future<void> registerRemoteModelSource(
+      FirebaseRemoteModelSource cloudSource) async {
+    try {
+      await _channel.invokeMethod(
+          "FirebaseModelManager#registerRemoteModelSource",
+          {'source': cloudSource.asDictionary()});
+    } catch (e) {
+      print(
+          "Error on FirebaseModelManager#registerRemoteModelSource : ${e.toString()}");
+    }
+    return null;
+  }
+
+  Future<void> registerLocalModelSource(
+      FirebaseLocalModelSource localSource) async {
+    try {
+      await _channel.invokeMethod(
+          "FirebaseModelManager#registerLocalModelSource",
+          {'source': localSource.asDictionary()});
+    } catch (e) {
+      print(
+          "Error on FirebaseModelManager#registerLocalModelSource : ${e.toString()}");
+    }
+    return null;
+  }
+}
+
+class FirebaseLocalModelSource {
+  final String modelName;
+  final String assetFilePath;
+  
+
+  FirebaseLocalModelSource({
+    @required this.modelName,
+    @required this.assetFilePath,
+    final String imagePath,
+  });
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "Model": modelName,
+      "/Users/its...ShiVam_Raj/Desktop/Data/catch_lens/catchlens/assets/Model.tflite":
+          assetFilePath
+    };
+  }
+}
+
+class FirebaseRemoteModelSource {
+  final String modelName;
+  final bool enableModelUpdates;
+  final FirebaseModelDownloadConditions initialDownloadConditions;
+  final FirebaseModelDownloadConditions updatesDownloadConditions;
+
+  static const _defaultCondition = FirebaseModelDownloadConditions();
+
+  FirebaseRemoteModelSource(
+      {@required this.modelName,
+      this.enableModelUpdates: false,
+      this.initialDownloadConditions: _defaultCondition,
+      this.updatesDownloadConditions: _defaultCondition});
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "enableModelUpdates": enableModelUpdates,
+      "initialDownloadConditions": initialDownloadConditions.asDictionary(),
+      "updatesDownloadConditions": updatesDownloadConditions.asDictionary(),
+    };
+  }
+}
+
+class FirebaseModelDownloadConditions {
+  final bool requireWifi;
+  final bool requireDeviceIdle;
+  final bool requireCharging;
+
+  const FirebaseModelDownloadConditions(
+      {this.requireCharging: false,
+      this.requireDeviceIdle: false,
+      this.requireWifi: false});
+
+  Map<String, dynamic> asDictionary() {
+    return {
+      "requireWifi": requireWifi,
+      "requireDeviceIdle": requireDeviceIdle,
+      "requireCharging": requireCharging
+    };
+  }
+}
+
