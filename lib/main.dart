@@ -39,6 +39,7 @@ class CameraScreen extends StatefulWidget {
 
 class _CameraScreenState extends State<CameraScreen> {
   CameraController _controller;
+  String title = '';
 
   @override
   void initState() {
@@ -98,6 +99,13 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        centerTitle: true,
+        actions: <Widget>[
+          PopOptionMenu(),
+        ],
+      ),
       body: _controller.value.isInitialized
           ? Stack(
               children: <Widget>[
@@ -115,7 +123,7 @@ class _CameraScreenState extends State<CameraScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => FirebaseMlkit(/Users/its...ShiVam_Raj/Desktop/Data/catch_lens/catchlens/lib/image_detail.dart),
+                                builder: (context) => DetailScreen(path),
                               ),
                             );
                           }
@@ -133,5 +141,22 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
             ),
     );
+  }
+}
+
+enum MenuOption { TextScan, ImageScan, BarcodeScan, QrcodeScan }
+
+class PopOptionMenu extends StatelessWidget {
+  const PopOptionMenu({Key key}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<MenuOption>(itemBuilder: (BuildContext context) {
+      return <PopupMenuEntry<MenuOption>>[
+        PopupMenuItem(child: Text('Text Scan'), value: MenuOption.TextScan),
+        PopupMenuItem(child: Text('Image Scan'), value: MenuOption.ImageScan),
+        PopupMenuItem(
+            child: Text('Barcode Scan'), value: MenuOption.BarcodeScan),
+      ];
+    });
   }
 }
